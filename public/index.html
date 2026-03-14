@@ -1,0 +1,1459 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>Déménagement</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap');
+:root {
+  --bg:#f5f2ec;--surface:#fff;--border:#e2ddd4;
+  --accent:#c4773a;--accent-l:#f5e6d8;
+  --lio:#3a7fc4;--lio-l:#d8eaf5;
+  --laisser:#3aab6e;--laisser-l:#d8f5e6;
+  --vendre:#c43a3a;--vendre-l:#f5d8d8;
+  --niv2:#8a6a3a;--niv2-l:#f5eed8;
+  --rox:#7a3ac4;--rox-l:#ead8f5;
+  --mer:#2a9d8f;--mer-l:#d8f5f2;
+  --text:#1a1612;--muted:#8a8278;
+  --radius:14px;--sidebar:68px;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+html,body{height:100%;overflow:hidden;}
+body{font-family:'Outfit',sans-serif;background:var(--bg);color:var(--text);}
+
+/* SPLASH */
+#splash{position:fixed;inset:0;z-index:9999;background:#1a1612;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:24px;transition:opacity .6s ease,transform .6s ease;}
+#splash.hide{opacity:0;transform:scale(1.04);pointer-events:none;}
+.splash-logo svg{width:110px;height:110px;animation:logoIn .8s cubic-bezier(.34,1.56,.64,1) both;}
+@keyframes logoIn{from{opacity:0;transform:scale(.6) translateY(20px)}to{opacity:1;transform:scale(1) translateY(0)}}
+.splash-title{font-size:28px;font-weight:800;color:#f5f2ec;letter-spacing:-.02em;animation:fadeUp .6s .3s ease both;}
+.splash-title span{color:var(--accent);}
+.splash-sub{font-size:13px;color:#6a6258;letter-spacing:.08em;text-transform:uppercase;animation:fadeUp .6s .5s ease both;}
+.splash-bar-wrap{width:160px;height:3px;background:#2a2520;border-radius:2px;overflow:hidden;animation:fadeUp .4s .7s ease both;}
+.splash-bar{height:100%;background:linear-gradient(90deg,var(--accent),#e8a86a);width:0%;animation:loadBar 2.2s .8s ease forwards;}
+@keyframes loadBar{to{width:100%}}
+@keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+
+/* LAYOUT */
+#app{display:none;height:100vh;flex-direction:row;}
+#app.show{display:flex;}
+
+/* SIDEBAR */
+.sidebar{width:var(--sidebar);background:#1a1612;display:flex;flex-direction:column;align-items:center;padding:12px 0 20px;gap:2px;flex-shrink:0;overflow-y:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;}
+.sidebar::-webkit-scrollbar{display:none;}
+.sb-logo{margin-bottom:6px;padding:8px 0 10px;border-bottom:1px solid #2a2520;width:100%;display:flex;justify-content:center;}
+.sb-logo svg{width:34px;height:34px;}
+.sb-btn{width:54px;min-height:52px;border-radius:12px;border:none;background:none;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;padding:5px 4px;transition:all .18s;position:relative;flex-shrink:0;}
+.sb-btn .fi{font-size:18px;line-height:1;}
+.sb-btn .fl{font-size:8px;font-weight:600;color:#5a5248;text-align:center;line-height:1.2;letter-spacing:.04em;font-family:'Outfit',sans-serif;max-width:52px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.sb-btn .fc{position:absolute;top:4px;right:4px;background:var(--accent);color:#fff;font-size:8px;font-weight:700;border-radius:8px;padding:1px 4px;display:none;}
+.sb-btn.has-todo .fc{display:block;}
+.sb-btn.active{background:rgba(196,119,58,.15);}
+.sb-btn.active .fl{color:var(--accent);}
+.sb-divider{width:30px;height:1px;background:#2a2520;margin:4px 0;flex-shrink:0;}
+
+/* MAIN */
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden;}
+
+/* TOPBAR */
+.topbar{background:rgba(245,242,236,.96);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);padding:10px 14px 8px;flex-shrink:0;}
+.topbar-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;}
+.topbar-title{font-size:17px;font-weight:700;}
+.topbar-title span{color:var(--accent);}
+.sync-row{display:flex;align-items:center;gap:5px;font-size:10px;color:var(--muted);}
+.sync-dot{width:6px;height:6px;border-radius:50%;background:#ccc;transition:background .3s;}
+.sync-dot.ok{background:var(--laisser);box-shadow:0 0 5px var(--laisser);}
+.sync-dot.syncing{background:var(--accent);animation:pulse .8s infinite;}
+.sync-dot.err{background:var(--vendre);}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.prog-bar{height:4px;background:var(--border);border-radius:2px;overflow:hidden;margin-bottom:5px;}
+.prog-fill{height:100%;background:linear-gradient(90deg,var(--accent),#e8a86a);border-radius:2px;transition:width .5s;}
+.prog-labels{display:flex;justify-content:space-between;font-size:10px;color:var(--muted);}
+
+/* FILTERS */
+.qfilters{display:flex;gap:5px;padding:8px 14px 0;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;flex-shrink:0;}
+.qfilters::-webkit-scrollbar{display:none;}
+.qchip{padding:4px 10px;border-radius:16px;font-size:10px;font-weight:600;border:1.5px solid var(--border);background:var(--surface);color:var(--muted);cursor:pointer;white-space:nowrap;flex-shrink:0;transition:all .15s;font-family:'Outfit',sans-serif;}
+.qchip.active{border-color:var(--accent);background:var(--accent-l);color:var(--accent);}
+.qchip.qniv2.active{border-color:var(--niv2);background:var(--niv2-l);color:var(--niv2);}
+.qchip.qlio.active{border-color:var(--lio);background:var(--lio-l);color:var(--lio);}
+.qchip.qlai.active{border-color:var(--laisser);background:var(--laisser-l);color:var(--laisser);}
+.qchip.qven.active{border-color:var(--vendre);background:var(--vendre-l);color:var(--vendre);}
+.qchip.qrox.active{border-color:var(--rox);background:var(--rox-l);color:var(--rox);}
+.qchip.qmer.active{border-color:var(--mer);background:var(--mer-l);color:var(--mer);}
+.qchip.qdone.active{border-color:#5a9e6a;background:#e6f5e8;color:#3a7a4a;}
+
+/* SCROLL */
+.scroll-area{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:10px 12px 90px;}
+
+/* ROOM CARDS */
+.room-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:8px;box-shadow:0 1px 6px rgba(0,0,0,.05);overflow:hidden;}
+.room-hdr{padding:12px 14px;display:flex;align-items:center;gap:10px;cursor:pointer;user-select:none;}
+.room-hdr:active{background:#f9f7f3;}
+.room-icon{font-size:20px;flex-shrink:0;}
+.room-info{flex:1;min-width:0;}
+.room-name{font-size:14px;font-weight:600;}
+.room-sub{font-size:10px;color:var(--muted);margin-top:1px;}
+.room-right{display:flex;align-items:center;gap:8px;flex-shrink:0;}
+.room-ring{width:32px;height:32px;flex-shrink:0;}
+.room-ring-bg{fill:none;stroke:var(--border);stroke-width:3;}
+.room-ring-fg{fill:none;stroke:var(--laisser);stroke-width:3;stroke-linecap:round;transform:rotate(-90deg);transform-origin:50% 50%;}
+.room-ring-txt{font-size:7px;font-weight:700;fill:var(--text);font-family:'Outfit',sans-serif;}
+.chevron{color:var(--muted);font-size:10px;transition:transform .22s;flex-shrink:0;}
+.room-card.open .chevron{transform:rotate(180deg);}
+.room-body{display:none;border-top:1px solid var(--border);}
+.room-card.open .room-body{display:block;}
+
+/* ITEMS */
+.item-row{padding:10px 14px;display:flex;align-items:center;gap:9px;border-bottom:1px solid rgba(226,221,212,.5);}
+.item-row:last-of-type{border-bottom:none;}
+.item-tap{flex:1;display:flex;align-items:center;gap:9px;cursor:pointer;min-width:0;}
+.chk{width:22px;height:22px;border-radius:7px;flex-shrink:0;border:2px solid var(--border);background:var(--surface);display:flex;align-items:center;justify-content:center;font-size:11px;color:#fff;transition:all .18s;}
+.item-row.done .chk{background:var(--laisser);border-color:var(--laisser);}
+.item-body{flex:1;min-width:0;}
+.item-name{font-size:13px;white-space:normal;word-break:break-word;line-height:1.35;}
+.item-row.done .item-name{color:var(--muted);text-decoration:line-through;}
+.item-note{font-size:10px;color:var(--muted);margin-top:1px;}
+.item-thumb{width:36px;height:36px;border-radius:8px;object-fit:cover;flex-shrink:0;border:1px solid var(--border);}
+.badge{font-size:9px;font-weight:700;padding:3px 7px;border-radius:10px;letter-spacing:.04em;flex-shrink:0;text-transform:uppercase;white-space:nowrap;}
+.b-niv{background:var(--accent-l);color:var(--accent);}
+.b-niv2{background:var(--niv2-l);color:var(--niv2);border:1px dashed #c4a070;}
+.b-lio{background:var(--lio-l);color:var(--lio);}
+.b-lais{background:var(--laisser-l);color:var(--laisser);}
+.b-vend{background:var(--vendre-l);color:var(--vendre);}
+.b-rox{background:var(--rox-l);color:var(--rox);}
+.b-mer{background:var(--mer-l);color:var(--mer);}
+.b-autre{background:#f0ede8;color:var(--muted);}
+.item-actions{display:flex;gap:2px;flex-shrink:0;}
+.act-btn{background:none;border:none;padding:5px;cursor:pointer;font-size:14px;color:#ccc;transition:color .18s;line-height:1;}
+.act-btn:active{color:var(--accent);}
+.act-btn.del:active{color:var(--vendre);}
+
+/* QUICK ADD */
+.qadd-row{padding:8px 14px;display:flex;gap:6px;align-items:center;border-top:1px solid var(--border);background:#faf9f6;}
+.qadd-input{flex:1;background:none;border:none;font-size:12px;color:var(--muted);font-family:'Outfit',sans-serif;outline:none;}
+.qadd-input::placeholder{color:#c0bab2;}
+.qadd-dest{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:4px 5px;font-size:10px;color:var(--muted);font-family:'Outfit',sans-serif;outline:none;max-width:82px;}
+.qadd-btn{background:var(--accent);border:none;border-radius:8px;color:#fff;padding:5px 10px;font-size:13px;font-weight:700;cursor:pointer;}
+
+/* STATS */
+#stats-page{display:none;flex:1;flex-direction:column;overflow:hidden;}
+#stats-page.show{display:flex;}
+.stats-scroll{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:14px 14px 90px;}
+.stat-title{font-size:18px;font-weight:800;}
+.stat-title span{color:var(--accent);}
+.kpi-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px;}
+.kpi-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px;text-align:center;}
+.kpi-val{font-size:32px;font-weight:800;line-height:1;}
+.kpi-lbl{font-size:10px;color:var(--muted);margin-top:3px;font-weight:500;text-transform:uppercase;letter-spacing:.06em;}
+.chart-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px;margin-bottom:10px;}
+.chart-card h3{font-size:13px;font-weight:700;margin-bottom:14px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;}
+canvas{width:100%!important;}
+.floor-stat{margin-bottom:10px;}
+.floor-stat-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;}
+.floor-stat-name{font-size:12px;font-weight:600;}
+.floor-stat-nums{font-size:11px;color:var(--muted);}
+.floor-stat-bar{height:6px;background:var(--border);border-radius:3px;overflow:hidden;}
+.floor-stat-fill{height:100%;border-radius:3px;background:linear-gradient(90deg,var(--accent),#e8a86a);}
+
+/* FAB */
+.fab{position:fixed;bottom:18px;right:14px;z-index:200;background:var(--accent);color:#fff;border:none;border-radius:50px;padding:12px 18px;font-size:13px;font-weight:700;font-family:'Outfit',sans-serif;cursor:pointer;box-shadow:0 4px 18px rgba(196,119,58,.45);display:flex;align-items:center;gap:7px;transition:transform .15s;}
+.fab:active{transform:scale(.96);}
+
+/* MODAL BASE */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.48);z-index:500;display:none;align-items:flex-end;}
+.overlay.show{display:flex;}
+.modal{background:var(--surface);border-radius:22px 22px 0 0;padding:20px 18px 44px;width:100%;max-height:92vh;overflow-y:auto;animation:slideUp .25s ease;}
+@keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
+.modal-hdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;}
+.modal-hdr h2{font-size:16px;font-weight:700;}
+.modal-close{background:none;border:none;font-size:20px;cursor:pointer;color:var(--muted);}
+.fgrp{margin-bottom:13px;}
+.flbl{font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:5px;display:block;}
+.finp,.fsel{width:100%;padding:11px 13px;border-radius:11px;border:1.5px solid var(--border);font-size:14px;font-family:'Outfit',sans-serif;background:var(--bg);color:var(--text);outline:none;transition:border-color .2s;appearance:none;-webkit-appearance:none;}
+.finp:focus,.fsel:focus{border-color:var(--accent);}
+.frow{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.submit-btn{width:100%;padding:14px;background:var(--accent);color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:700;font-family:'Outfit',sans-serif;cursor:pointer;margin-top:4px;}
+
+/* PHOTO */
+.photo-area{border:2px dashed var(--border);border-radius:12px;padding:16px;text-align:center;cursor:pointer;position:relative;overflow:hidden;background:var(--bg);}
+.photo-area.has-img{border-color:var(--accent);padding:0;}
+.photo-area input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;}
+.photo-preview{width:100%;max-height:180px;object-fit:cover;border-radius:10px;display:none;}
+.photo-area.has-img .photo-preview{display:block;}
+.photo-placeholder{font-size:28px;margin-bottom:4px;}
+.photo-hint{font-size:11px;color:var(--muted);}
+.photo-area.has-img .photo-placeholder,.photo-area.has-img .photo-hint{display:none;}
+.photo-remove{display:none;position:absolute;top:8px;right:8px;background:rgba(0,0,0,.55);color:#fff;border:none;border-radius:50%;width:26px;height:26px;font-size:13px;cursor:pointer;align-items:center;justify-content:center;z-index:2;}
+.photo-area.has-img .photo-remove{display:flex;}
+
+
+/* RENAME MINI-MODAL */
+.rename-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:900;display:none;align-items:center;justify-content:center;padding:20px;}
+.rename-overlay.show{display:flex;}
+.rename-box{background:var(--surface);border-radius:18px;padding:22px 18px 18px;width:100%;max-width:340px;box-shadow:0 8px 32px rgba(0,0,0,.18);}
+.rename-box h3{font-size:15px;font-weight:700;margin-bottom:14px;color:var(--text);}
+.rename-box input{width:100%;padding:13px 14px;border-radius:11px;border:2px solid var(--accent);font-size:15px;font-family:'Outfit',sans-serif;background:var(--bg);color:var(--text);outline:none;margin-bottom:14px;}
+.rename-actions{display:flex;gap:8px;}
+.rename-cancel{flex:1;padding:11px;border-radius:10px;border:1.5px solid var(--border);background:none;font-size:14px;font-weight:600;font-family:'Outfit',sans-serif;cursor:pointer;color:var(--muted);}
+.rename-ok{flex:2;padding:11px;border-radius:10px;border:none;background:var(--accent);color:#fff;font-size:14px;font-weight:700;font-family:'Outfit',sans-serif;cursor:pointer;}
+
+/* MANAGE STRUCTURE */
+.manage-section{margin-bottom:20px;}
+.manage-section-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
+.manage-section-title{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;}
+.manage-add-btn{background:var(--accent);color:#fff;border:none;border-radius:8px;padding:5px 12px;font-size:11px;font-weight:700;cursor:pointer;font-family:'Outfit',sans-serif;}
+.manage-list{display:flex;flex-direction:column;gap:6px;}
+.mrow{display:flex;align-items:center;gap:8px;background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:9px 10px;transition:background .15s;}
+.mrow.drag-over{background:var(--accent-l);border-color:var(--accent);}
+.mrow.dragging{opacity:.35;}
+.drag-handle{color:#aaa;font-size:20px;cursor:grab;flex-shrink:0;padding:4px 8px;touch-action:none;user-select:none;-webkit-user-select:none;letter-spacing:-2px;}
+.mrow-info{flex:1;min-width:0;}
+.mrow-name{font-size:13px;font-weight:600;}
+.mrow-sub{font-size:10px;color:var(--muted);margin-top:1px;}
+.mrow-actions{display:flex;gap:5px;flex-shrink:0;}
+.mrow-name-input{flex:1;border:none;background:transparent;font-size:13px;font-weight:600;font-family:'Outfit',sans-serif;color:var(--text);outline:none;padding:2px 4px;border-radius:6px;min-width:0;width:100%;}
+.mrow-name-input:focus{background:var(--accent-l);color:var(--accent);}
+.mrow-btn{background:none;border:1.5px solid var(--border);border-radius:8px;padding:4px 9px;font-size:11px;font-weight:600;cursor:pointer;color:var(--muted);font-family:'Outfit',sans-serif;white-space:nowrap;transition:all .15s;}
+.mrow-btn.rooms{border-color:var(--lio);color:var(--lio);}
+.mrow-btn.del{border-color:var(--vendre);color:var(--vendre);}
+.inline-add{display:none;flex-direction:row;gap:8px;margin-top:8px;}
+.inline-add.show{display:flex;}
+.inline-add input{flex:1;padding:10px 13px;border-radius:10px;border:1.5px solid var(--accent);font-size:13px;font-family:'Outfit',sans-serif;background:var(--bg);color:var(--text);outline:none;}
+.inline-add button{background:var(--accent);color:#fff;border:none;border-radius:10px;padding:10px 16px;font-size:13px;font-weight:700;cursor:pointer;font-family:'Outfit',sans-serif;}
+.back-btn{display:flex;align-items:center;gap:6px;background:none;border:none;color:var(--muted);font-size:12px;font-weight:600;cursor:pointer;padding:0 0 12px;font-family:'Outfit',sans-serif;}
+.floor-badge{display:inline-block;padding:3px 10px;background:var(--accent-l);border:1px solid var(--accent);border-radius:20px;font-size:11px;font-weight:700;color:var(--accent);margin-bottom:10px;}
+
+/* EXPORT */
+.export-bar{display:flex;gap:8px;margin-bottom:14px;}
+.exp-btn{flex:1;padding:11px 6px;border-radius:12px;border:1.5px solid var(--border);background:var(--surface);font-family:'Outfit',sans-serif;font-size:12px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:5px;transition:all .18s;color:var(--text);}
+.exp-btn.pdf{border-color:#e53e3e;color:#e53e3e;background:#fff5f5;}
+.exp-btn.excel{border-color:#2f855a;color:#2f855a;background:#f0fff4;}
+.exp-btn.txt{border-color:var(--lio);color:var(--lio);background:var(--lio-l);}
+.exp-filter-row{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:10px;}
+.exp-chip{padding:5px 11px;border-radius:16px;font-size:11px;font-weight:600;border:1.5px solid var(--border);background:var(--surface);color:var(--muted);cursor:pointer;transition:all .15s;font-family:'Outfit',sans-serif;white-space:nowrap;}
+.exp-chip.active{border-color:var(--accent);background:var(--accent-l);color:var(--accent);}
+
+/* TOAST */
+.toast{position:fixed;bottom:85px;left:50%;transform:translateX(-50%) translateY(10px);background:#1a1612;color:#fff;padding:8px 18px;border-radius:20px;font-size:12px;opacity:0;transition:all .28s;pointer-events:none;white-space:nowrap;z-index:700;}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+.empty-state{text-align:center;padding:50px 20px;color:var(--muted);}
+.empty-state .big{font-size:40px;margin-bottom:10px;}
+</style>
+</head>
+<body>
+
+<!-- SPLASH -->
+<div id="splash">
+  <div class="splash-logo">
+    <svg viewBox="0 0 300 300" xmlns="http://www.w3.org/2000/svg">
+      <path d="M95 155 Q80 70,60 55 Q140 110,150 120 Q160 110,240 55 Q210 90,200 155 Q150 180,95 155Z" fill="#c4773a"/>
+      <path d="M140 215 Q150 223,160 215 L150 250Z" fill="#c4773a"/>
+    </svg>
+  </div>
+  <div class="splash-title">Démé<span>nagement</span></div>
+  <div class="splash-sub">Suivi du déménagement</div>
+  <div class="splash-bar-wrap"><div class="splash-bar"></div></div>
+</div>
+
+<!-- APP -->
+<div id="app">
+  <nav class="sidebar">
+    <div class="sb-logo">
+      <svg viewBox="0 0 300 300" xmlns="http://www.w3.org/2000/svg">
+        <path d="M95 155 Q80 70,60 55 Q140 110,150 120 Q160 110,240 55 Q210 90,200 155 Q150 180,95 155Z" fill="#c4773a"/>
+        <path d="M140 215 Q150 223,160 215 L150 250Z" fill="#c4773a"/>
+      </svg>
+    </div>
+    <!-- Stats always first -->
+    <button class="sb-btn active" id="sb-stats" onclick="showPage('__stats__')">
+      <span class="fi">📊</span><span class="fl">Stats</span>
+    </button>
+    <div class="sb-divider"></div>
+    <!-- Dynamic floor buttons -->
+    <div id="floorBtns" style="display:contents"></div>
+    <div class="sb-divider"></div>
+    <!-- Manage button always last -->
+    <button class="sb-btn" id="sb-manage" onclick="openManage()">
+      <span class="fi">⚙️</span><span class="fl">Gérer</span>
+    </button>
+  </nav>
+
+  <div class="main">
+    <div class="topbar">
+      <div class="topbar-row">
+        <div class="topbar-title" id="topbarTitle">📊 <span>Statistiques</span></div>
+        <div class="sync-row"><div class="sync-dot" id="syncDot"></div><span id="syncLabel">—</span></div>
+      </div>
+      <div class="prog-bar"><div class="prog-fill" id="progFill" style="width:0%"></div></div>
+      <div class="prog-labels"><span id="progLeft">Chargement…</span><span id="progRight">0%</span></div>
+    </div>
+
+    <div class="qfilters" id="qfilters" style="display:none">
+      <button class="qchip active" onclick="setQF('all',this)">Tout</button>
+      <button class="qchip qdone" onclick="setQF('done',this)">✅ Faits</button>
+      <button class="qchip"       onclick="setQF('todo',this)">⏳ À faire</button>
+      <button class="qchip"       onclick="setQF('Nivelles',this)">🏠 Nivelles</button>
+      <button class="qchip qniv2" onclick="setQF('Nivelles ?',this)">🏠 Niv.?</button>
+      <button class="qchip qlio"  onclick="setQF('Lio',this)">🌊 Lio</button>
+      <button class="qchip qmer"  onclick="setQF('Mer',this)">⚓ Mer</button>
+      <button class="qchip qlai"  onclick="setQF('Laisser',this)">📌 Laisser</button>
+      <button class="qchip qven"  onclick="setQF('Vendre',this)">♻️ Vendre</button>
+      <button class="qchip qrox"  onclick="setQF('Rox',this)">🎮 Rox/Lenny</button>
+    </div>
+
+    <div id="stats-page" class="show"><div class="stats-scroll" id="statsContent"></div></div>
+    <div id="floor-page" style="display:none;flex:1;flex-direction:column;overflow:hidden;">
+      <div class="scroll-area" id="floorContent"></div>
+    </div>
+  </div>
+</div>
+
+<button class="fab" id="fabBtn" onclick="openAddModal()" style="display:none">＋ Ajouter</button>
+
+<!-- ADD/EDIT ITEM MODAL -->
+<div class="overlay" id="itemOverlay" onclick="if(event.target===this)closeItemModal()">
+  <div class="modal">
+    <div class="modal-hdr">
+      <h2 id="itemModalTitle">Ajouter un objet</h2>
+      <button class="modal-close" onclick="closeItemModal()">✕</button>
+    </div>
+    <input type="hidden" id="editIdx" value="-1">
+    <div class="fgrp">
+      <label class="flbl">Nom de l'objet</label>
+      <input class="finp" id="mItem" placeholder="ex: Lampe de salon" autocomplete="off">
+    </div>
+    <div class="frow">
+      <div class="fgrp">
+        <label class="flbl">Étage</label>
+        <select class="fsel" id="mFloor" onchange="updateRoomOptions()">
+          <option value="">— choisir —</option>
+        </select>
+      </div>
+      <div class="fgrp">
+        <label class="flbl">Pièce</label>
+        <select class="fsel" id="mRoom">
+          <option value="">— d'abord l'étage —</option>
+        </select>
+      </div>
+    </div>
+    <div class="fgrp">
+      <label class="flbl">Destination</label>
+      <select class="fsel" id="mDest">
+        <option value="Nivelles">🏠 Nivelles</option>
+        <option value="Nivelles ?">🏠 Nivelles (à confirmer)</option>
+        <option value="Lio">🌊 Lio</option>
+        <option value="Mer">⚓ Mer</option>
+        <option value="À laisser">📌 À laisser sur place</option>
+        <option value="À vendre/jeter">♻️ À vendre / jeter</option>
+        <option value="Rox/Lenny">🎮 Rox / Lenny</option>
+        <option value="Garage">🔧 Garage</option>
+      </select>
+    </div>
+    <div class="fgrp">
+      <label class="flbl">Note</label>
+      <input class="finp" id="mNote" placeholder="ex: Anne, fragile, à démontrer…">
+    </div>
+    <div class="fgrp">
+      <label class="flbl">Photo (optionnel)</label>
+      <div class="photo-area" id="photoArea">
+        <input type="file" id="photoInput" accept="image/*" onchange="handlePhoto(event)">
+        <div class="photo-placeholder">📷</div>
+        <div class="photo-hint">Appuyer pour ajouter une photo</div>
+        <img class="photo-preview" id="photoPreview" src="" alt="">
+        <button class="photo-remove" onclick="removePhoto(event)">✕</button>
+      </div>
+    </div>
+    <button class="submit-btn" id="submitBtn" onclick="submitItemModal()">Ajouter ✓</button>
+  </div>
+</div>
+
+<!-- MANAGE STRUCTURE MODAL -->
+<div class="overlay" id="manageOverlay" onclick="if(event.target===this)closeManage()">
+  <div class="modal" style="max-height:92vh">
+    <div class="modal-hdr">
+      <h2>⚙️ Gérer la structure</h2>
+      <button class="modal-close" onclick="closeManage()">✕</button>
+    </div>
+
+    <!-- FLOOR LIST VIEW -->
+    <div id="manageFloorsView">
+      <p style="font-size:11px;color:var(--muted);margin-bottom:14px">Glisse <b>≡</b> pour réordonner · <b>✏️</b> pour renommer · <b>🚪</b> pour gérer les pièces</p>
+      <div class="manage-section">
+        <div class="manage-section-hdr">
+          <span class="manage-section-title">Étages</span>
+          <button class="manage-add-btn" onclick="toggleInlineAdd('addFloorInline')">＋ Ajouter un étage</button>
+        </div>
+        <div class="manage-list" id="floorManageList"></div>
+        <div class="inline-add" id="addFloorInline">
+          <input id="newFloorInput" placeholder="Nom du nouvel étage…" onkeydown="if(event.key==='Enter')confirmAddFloor()">
+          <button onclick="confirmAddFloor()">OK</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ROOM LIST VIEW (shown when clicking 🚪) -->
+    <div id="manageRoomsView" style="display:none">
+      <button class="back-btn" onclick="showFloorsView()">← Retour aux étages</button>
+      <div class="floor-badge" id="roomsFloorBadge"></div>
+      <div class="manage-section">
+        <div class="manage-section-hdr">
+          <span class="manage-section-title">Pièces</span>
+          <button class="manage-add-btn" onclick="toggleInlineAdd('addRoomInline')">＋ Ajouter une pièce</button>
+        </div>
+        <div class="manage-list" id="roomManageList"></div>
+        <div class="inline-add" id="addRoomInline">
+          <input id="newRoomInput" placeholder="Nom de la nouvelle pièce…" onkeydown="if(event.key==='Enter')confirmAddRoom()">
+          <button onclick="confirmAddRoom()">OK</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- EXPORT MODAL -->
+<div class="overlay" id="exportOverlay" onclick="if(event.target===this)closeExport()">
+  <div class="modal">
+    <div class="modal-hdr">
+      <h2>📤 Exporter la liste</h2>
+      <button class="modal-close" onclick="closeExport()">✕</button>
+    </div>
+    <div class="fgrp">
+      <label class="flbl">Destination</label>
+      <div class="exp-filter-row" id="expDestRow">
+        <button class="exp-chip active" onclick="setExpFilter('all',this)">Tout</button>
+        <button class="exp-chip" onclick="setExpFilter('Nivelles',this)">🏠 Nivelles</button>
+        <button class="exp-chip" onclick="setExpFilter('Nivelles ?',this)">🏠 Niv.?</button>
+        <button class="exp-chip" onclick="setExpFilter('Lio',this)">🌊 Lio</button>
+        <button class="exp-chip" onclick="setExpFilter('Mer',this)">⚓ Mer</button>
+        <button class="exp-chip" onclick="setExpFilter('Laisser',this)">📌 Laisser</button>
+        <button class="exp-chip" onclick="setExpFilter('Vendre',this)">♻️ Vendre</button>
+        <button class="exp-chip" onclick="setExpFilter('Rox',this)">🎮 Rox/Lenny</button>
+      </div>
+    </div>
+    <div class="fgrp">
+      <label class="flbl">Étage</label>
+      <div class="exp-filter-row" id="expFloorRow"></div>
+    </div>
+    <div class="fgrp">
+      <label class="flbl">État</label>
+      <div class="exp-filter-row">
+        <button class="exp-chip active" onclick="setExpDone('all',this)">Tout</button>
+        <button class="exp-chip" onclick="setExpDone('todo',this)">⏳ À faire</button>
+        <button class="exp-chip" onclick="setExpDone('done',this)">✅ Faits</button>
+      </div>
+    </div>
+    <div class="export-bar">
+      <button class="exp-btn pdf" onclick="exportPDF()">📄 PDF</button>
+      <button class="exp-btn excel" onclick="exportCSV()">📊 Excel</button>
+      <button class="exp-btn txt" onclick="exportTXT()">📝 Texte</button>
+    </div>
+    <div style="font-size:10px;color:var(--muted);text-align:center">PDF : s'ouvre dans le navigateur, imprime ou partage depuis là</div>
+  </div>
+</div>
+
+
+<!-- RENAME MINI-MODAL -->
+<div class="rename-overlay" id="renameOverlay" onclick="if(event.target===this)closeRename()">
+  <div class="rename-box">
+    <h3 id="renameTitle">Renommer</h3>
+    <input id="renameInput" placeholder="Nouveau nom…"
+      onkeydown="if(event.key==='Enter')confirmRename();if(event.key==='Escape')closeRename();">
+    <div class="rename-actions">
+      <button class="rename-cancel" onclick="closeRename()">Annuler</button>
+      <button class="rename-ok" onclick="confirmRename()">Renommer ✓</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script>
+// ═══════════════════════════════════════════════════════════
+// DEFAULT STRUCTURE (floors + rooms) — fully dynamic
+// ═══════════════════════════════════════════════════════════
+const DEF_STRUCTURE = {
+  order: ['Rez-de-chaussée','1er étage','2e étage','3e étage','Cave'],
+  rooms: {
+    'Rez-de-chaussée': ['Cuisine','Véranda','Salle à manger','Salon',"Hall d'entrée",'Kot'],
+    '1er étage':       ['Chambre Greti','Salle de bain','Buanderie','Chambre Lio','WC'],
+    '2e étage':        ['WC','Chambre jouets','Chambre Rox','Petite chambre','Hall 2e étage'],
+    '3e étage':        ['Chambre principale'],
+    'Cave':            ['Petite cave','Grande cave'],
+  }
+};
+
+const ROOM_ICONS = {
+  'Cuisine':'🍳','Véranda':'🌿','Salle à manger':'🍽️','Salon':'🛋️',"Hall d'entrée":'🚪',
+  'Chambre Greti':'🛏️','Salle de bain':'🚿','Buanderie':'🫧','Chambre Lio':'🌊',
+  'Chambre Rox':'🎮','Chambre jouets':'🎯','Petite chambre':'🎸','Chambre principale':'👑',
+  'Hall 2e étage':'🚪','WC':'🚽','Kot':'📦','Petite cave':'🍷','Grande cave':'🏗️',
+};
+
+// ═══════════════════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════════════════
+let structure = JSON.parse(JSON.stringify(DEF_STRUCTURE));
+let items = [];
+let checked = {};
+let openRooms = {};
+let currentFloor = null;
+let qFilter = 'all';
+let ws = null;
+let charts = {};
+let pendingPhoto = '';
+let expFilter = 'all', expFloor = 'all', expDone = 'all';
+let managingFloor = null;
+let dragSrcIdx = null;
+
+// ═══════════════════════════════════════════════════════════
+// DEFAULT ITEMS
+// ═══════════════════════════════════════════════════════════
+const DEFAULT_ITEMS = [
+  {floor:'Rez-de-chaussée',room:'Cuisine',item:'Tout le contenu',dest:'À laisser',note:'',photo:''},
+  {floor:'Rez-de-chaussée',room:'Véranda',item:'Télévision',dest:'Lio',note:'',photo:''},
+  {floor:'Rez-de-chaussée',room:'Véranda',item:'Table',dest:'Nivelles',note:'',photo:''},
+  {floor:'Rez-de-chaussée',room:'Véranda',item:'4 chaises',dest:'Nivelles',note:'',photo:''},
+  {floor:'Rez-de-chaussée',room:'Véranda',item:'Meuble MdM',dest:'Nivelles',note:'',photo:''},
+  {floor:'Rez-de-chaussée',room:'Véranda',item:'Meuble déco',dest:'Nivelles',note:'',photo:''},
+  {floor:'Rez-de-chaussée',room:'Véranda',item:'Lustre',dest:'Nivelles',note:'',photo:''},
+  {floor:'Rez-de-chaussée',room:'Véranda',item:'Statue en bois',dest:'Nivelles',note:'',photo:''},
+  {floor:'Rez-de-chaussée',room:'Véranda',item:'Meuble octogonal',dest:'Nivelles ?',note:'',photo:''},
+  {floor:'Rez-de-chaussée',room:'Véranda',item:'Chaise bonne-maman',dest:'Nivelles',note:'',photo:''},
+  {floor:'Rez-de-chaussée',room:'Kot',item:'Congélateur',dest:'Nivelles',note:'',photo:''},
+  {floor:'Rez-de-chaussée',room:'Kot',item:'Étagères',dest:'À laisser',note:'',photo:''},
+  {floor:'Rez-de-chaussée',room:'Salle à manger',item:'Table',dest:'Nivelles',note:'',photo:''},
+  {floor:'Rez-de-chaussée',room:'Salle à manger',item:'8 chaises',dest:'Nivelles',note:'',photo:''},
+  {floor:'Rez-de-chaussée',room:'Salle à manger',item:'Poêle',dest:'À laisser',note:'',photo:''},
+  {floor:'Rez-de-chaussée',room:'Salle à manger',item:'Lustre',dest:'Nivelles',note:'',photo:''},
+  {floor:'Rez-de-chaussée',room:'Salle à manger',item:'Horloge',dest:'Nivelles',note:'',photo:''},
+  {floor:'Rez-de-chaussée',room:'Salon',item:'Divan',dest:'Nivelles',note:'',photo:''},
+  {floor:'Rez-de-chaussée',room:'Salon',item:'Table basse',dest:'Nivelles',note:'',photo:''},
+  {floor:'Rez-de-chaussée',room:'Salon',item:'Bar meuble',dest:'Nivelles',note:'',photo:''},
+  {floor:'Rez-de-chaussée',room:'Salon',item:'Meuble TV',dest:'Nivelles',note:'',photo:''},
+  {floor:'Rez-de-chaussée',room:'Salon',item:'Table carrée',dest:'Nivelles',note:'',photo:''},
+  {floor:'Rez-de-chaussée',room:'Salon',item:'Télévision',dest:'Nivelles ?',note:'',photo:''},
+  {floor:'Rez-de-chaussée',room:"Hall d'entrée",item:'Garde-robe',dest:'À laisser',note:'',photo:''},
+  {floor:'Rez-de-chaussée',room:"Hall d'entrée",item:'Colonne-meuble',dest:'Nivelles ?',note:'A',photo:''},
+  {floor:'Rez-de-chaussée',room:"Hall d'entrée",item:'Carrés IKEA',dest:'Nivelles ?',note:'A & JM',photo:''},
+  {floor:'Rez-de-chaussée',room:"Hall d'entrée",item:'Meuble chaussures',dest:'Nivelles ?',note:'',photo:''},
+  {floor:'Rez-de-chaussée',room:"Hall d'entrée",item:'Tapis mural',dest:'Lio',note:'',photo:''},
+  {floor:'1er étage',room:'Chambre Greti',item:'Garde-robes',dest:'À laisser',note:'',photo:''},
+  {floor:'1er étage',room:'Chambre Greti',item:'2 colonnes noires',dest:'Nivelles',note:'A',photo:''},
+  {floor:'1er étage',room:'Chambre Greti',item:'Colonne jeux',dest:'À laisser',note:'A & JM',photo:''},
+  {floor:'1er étage',room:'Chambre Greti',item:'Colonne DVD',dest:'Nivelles ?',note:'A & JM',photo:''},
+  {floor:'1er étage',room:'Chambre Greti',item:'Petite armoire blanche',dest:'À laisser',note:'',photo:''},
+  {floor:'1er étage',room:'Chambre Greti',item:'Armoire à outils',dest:'À laisser',note:'A & JM',photo:''},
+  {floor:'1er étage',room:'Chambre Greti',item:'Petite armoire ampoules',dest:'Nivelles ?',note:'',photo:''},
+  {floor:'1er étage',room:'Chambre Greti',item:'Matelas mousse',dest:'À vendre/jeter',note:'',photo:''},
+  {floor:'1er étage',room:'Chambre Greti',item:"Petit meuble à l'entrée",dest:'Nivelles ?',note:'',photo:''},
+  {floor:'1er étage',room:'Chambre Greti',item:'Cadres',dest:'Lio',note:'',photo:''},
+  {floor:'1er étage',room:'Salle de bain',item:'Contenu salle de bain',dest:'À laisser',note:'',photo:''},
+  {floor:'1er étage',room:'Buanderie',item:'Meuble blanc',dest:'Nivelles ?',note:'',photo:''},
+  {floor:'1er étage',room:'Buanderie',item:'Meuble WC',dest:'Nivelles ?',note:'',photo:''},
+  {floor:'1er étage',room:'Chambre Lio',item:'3 carrés noirs',dest:'Lio',note:'',photo:''},
+  {floor:'1er étage',room:'Chambre Lio',item:'Fauteuils',dest:'Lio',note:'',photo:''},
+  {floor:'1er étage',room:'Chambre Lio',item:'Lit',dest:'À vendre/jeter',note:'',photo:''},
+  {floor:'1er étage',room:'Chambre Lio',item:'2 meubles beiges',dest:'Lio',note:'',photo:''},
+  {floor:'1er étage',room:'Chambre Lio',item:'Meuble blanc à tiroir',dest:'À vendre/jeter',note:'',photo:''},
+  {floor:'1er étage',room:'Chambre Lio',item:'Coffre Mamy',dest:'À vendre/jeter',note:'',photo:''},
+  {floor:'1er étage',room:'Chambre Lio',item:'6 chaises',dest:'Lio',note:'',photo:''},
+  {floor:'1er étage',room:'Chambre Lio',item:'2 bibliothèques Mamy',dest:'Lio',note:'',photo:''},
+  {floor:'1er étage',room:'Chambre Lio',item:'Tableau carré',dest:'Lio',note:'',photo:''},
+  {floor:'1er étage',room:'Chambre Lio',item:'Petit coffre',dest:'Lio',note:'',photo:''},
+  {floor:'1er étage',room:'Chambre Lio',item:'Bureau',dest:'Lio',note:'',photo:''},
+  {floor:'2e étage',room:'WC',item:'Meubles',dest:'À vendre/jeter',note:'',photo:''},
+  {floor:'2e étage',room:'WC',item:'Cadres',dest:'À vendre/jeter',note:'',photo:''},
+  {floor:'2e étage',room:'Chambre jouets',item:'Meuble blanc',dest:'Nivelles',note:'',photo:''},
+  {floor:'2e étage',room:'Chambre jouets',item:'Meuble TV',dest:'Nivelles ?',note:'',photo:''},
+  {floor:'2e étage',room:'Chambre jouets',item:'Télévision',dest:'À vendre/jeter',note:'',photo:''},
+  {floor:'2e étage',room:'Chambre jouets',item:'Ampli & Platine',dest:'À vendre/jeter',note:'',photo:''},
+  {floor:'2e étage',room:'Chambre jouets',item:'Meuble ampli',dest:'À vendre/jeter',note:'',photo:''},
+  {floor:'2e étage',room:'Chambre jouets',item:'4 meubles carrés',dest:'Lio',note:'',photo:''},
+  {floor:'2e étage',room:'Chambre jouets',item:'Colonne de coin',dest:'À vendre/jeter',note:'',photo:''},
+  {floor:'2e étage',room:'Chambre jouets',item:'Vélo appartement',dest:'À vendre/jeter',note:'',photo:''},
+  {floor:'2e étage',room:'Chambre jouets',item:'Meubles CD',dest:'Nivelles',note:'',photo:''},
+  {floor:'2e étage',room:'Chambre jouets',item:'2 meubles bruns DVD',dest:'Nivelles',note:'',photo:''},
+  {floor:'2e étage',room:'Chambre jouets',item:'Fauteuils',dest:'À vendre/jeter',note:'',photo:''},
+  {floor:'2e étage',room:'Chambre jouets',item:'Armoires vitres CD',dest:'À vendre/jeter',note:'',photo:''},
+  {floor:'2e étage',room:'Chambre jouets',item:'Billy BD',dest:'Nivelles',note:'',photo:''},
+  {floor:'2e étage',room:'Chambre jouets',item:'Billy DVD',dest:'Nivelles',note:'',photo:''},
+  {floor:'2e étage',room:'Chambre Rox',item:'Lit "en dessous"',dest:'À vendre/jeter',note:'',photo:''},
+  {floor:'2e étage',room:'Chambre Rox',item:'Lit "au-dessus"',dest:'À vendre/jeter',note:'',photo:''},
+  {floor:'2e étage',room:'Chambre Rox',item:'Petit meuble',dest:'Nivelles ?',note:'',photo:''},
+  {floor:'2e étage',room:'Chambre Rox',item:'Meuble brun',dest:'À vendre/jeter',note:'',photo:''},
+  {floor:'2e étage',room:'Chambre Rox',item:'Meuble IKEA',dest:'Nivelles ?',note:'',photo:''},
+  {floor:'2e étage',room:'Chambre Rox',item:'Table de nuit',dest:'Garage',note:'',photo:''},
+  {floor:'2e étage',room:'Chambre Rox',item:'Contenu caisses',dest:'Garage',note:'',photo:''},
+  {floor:'2e étage',room:'Chambre Rox',item:'Télévision',dest:'À vendre/jeter',note:'',photo:''},
+  {floor:'2e étage',room:'Chambre Rox',item:'Vieille imprimante',dest:'À vendre/jeter',note:'',photo:''},
+  {floor:'2e étage',room:'Chambre Rox',item:'Meuble vitrine',dest:'Garage',note:'',photo:''},
+  {floor:'2e étage',room:'Chambre Rox',item:'Contenu brol',dest:'Rox/Lenny',note:'',photo:''},
+  {floor:'2e étage',room:'Petite chambre',item:'Patapouf',dest:'Rox/Lenny',note:'',photo:''},
+  {floor:'2e étage',room:'Petite chambre',item:'Guitares',dest:'À vendre/jeter',note:'',photo:''},
+  {floor:'2e étage',room:'Petite chambre',item:'Fauteuil bleu',dest:'À vendre/jeter',note:'',photo:''},
+  {floor:'2e étage',room:'Petite chambre',item:'2 petits meubles',dest:'Nivelles',note:'',photo:''},
+  {floor:'2e étage',room:'Petite chambre',item:'Meuble blanc',dest:'À vendre/jeter',note:'',photo:''},
+  {floor:'2e étage',room:'Petite chambre',item:'Garde-robe',dest:'À laisser',note:'',photo:''},
+  {floor:'2e étage',room:'Hall 2e étage',item:'Lampes',dest:'À vendre/jeter',note:'',photo:''},
+  {floor:'2e étage',room:'Hall 2e étage',item:'Petit meuble',dest:'À vendre/jeter',note:'',photo:''},
+  {floor:'3e étage',room:'Chambre principale',item:'Télévision',dest:'À vendre/jeter',note:'',photo:''},
+  {floor:'3e étage',room:'Chambre principale',item:'Fauteuil',dest:'Rox/Lenny',note:'',photo:''},
+  {floor:'3e étage',room:'Chambre principale',item:'2 colonnes noires',dest:'Nivelles ?',note:'',photo:''},
+  {floor:'3e étage',room:'Chambre principale',item:'2 Billy',dest:'Nivelles ?',note:'',photo:''},
+  {floor:'3e étage',room:'Chambre principale',item:'2 carrés IKEA',dest:'Rox/Lenny',note:'Lio',photo:''},
+  {floor:'3e étage',room:'Chambre principale',item:'Meuble à tiroirs',dest:'Nivelles',note:'Anne',photo:''},
+  {floor:'3e étage',room:'Chambre principale',item:'2 carrés bruns',dest:'Nivelles ?',note:'',photo:''},
+  {floor:'3e étage',room:'Chambre principale',item:'Bureau',dest:'À vendre/jeter',note:'',photo:''},
+  {floor:'3e étage',room:'Chambre principale',item:'Meuble noir bureau',dest:'À vendre/jeter',note:'',photo:''},
+  {floor:'3e étage',room:'Chambre principale',item:'Chaise',dest:'Nivelles',note:'',photo:''},
+  {floor:'3e étage',room:'Chambre principale',item:'Lit & matelas',dest:'Lio',note:'',photo:''},
+  {floor:'3e étage',room:'Chambre principale',item:'4 tables de nuit',dest:'Nivelles',note:'',photo:''},
+  {floor:'3e étage',room:'Chambre principale',item:'Grand meuble carré',dest:'À laisser',note:'',photo:''},
+  {floor:'Cave',room:'Petite cave',item:'Frigo à vin',dest:'À laisser',note:'',photo:''},
+  {floor:'Cave',room:'Petite cave',item:'Rangements vin',dest:'Nivelles',note:'',photo:''},
+  {floor:'Cave',room:'Petite cave',item:'2e frigo à vin',dest:'À laisser',note:'',photo:''},
+  {floor:'Cave',room:'Petite cave',item:'2 surgélateurs',dest:'Nivelles',note:'',photo:''},
+  {floor:'Cave',room:'Grande cave',item:'Meuble rangement cans',dest:'Nivelles',note:'',photo:''},
+  {floor:'Cave',room:'Grande cave',item:'2 meubles blancs',dest:'À vendre/jeter',note:'',photo:''},
+  {floor:'Cave',room:'Grande cave',item:'Meubles "sapin"',dest:'À vendre/jeter',note:'',photo:''},
+  {floor:'Cave',room:'Grande cave',item:'3 étagères métal',dest:'Nivelles ?',note:'',photo:''},
+  {floor:'Cave',room:'Grande cave',item:'Meuble blanc',dest:'À vendre/jeter',note:'',photo:''},
+  {floor:'Cave',room:'Grande cave',item:'Grands bacs noirs',dest:'Nivelles',note:'',photo:''},
+  {floor:'Cave',room:'Grande cave',item:'Table basse chêne',dest:'Lio',note:'',photo:''},
+  {floor:'Cave',room:'Grande cave',item:'Table à manger carrée',dest:'Lio',note:'',photo:''},
+  {floor:'Cave',room:'Grande cave',item:'Petite table de jardin',dest:'Nivelles',note:'',photo:''},
+  {floor:'Cave',room:'Grande cave',item:'Tablette noire',dest:'À vendre/jeter',note:'',photo:''},
+  {floor:'Cave',room:'Grande cave',item:'Vélo klaxon',dest:'Rox/Lenny',note:'',photo:''},
+  {floor:'Cave',room:'Grande cave',item:'Vélo JM',dest:'Lio',note:'',photo:''},
+  {floor:'Cave',room:'Grande cave',item:'Meuble Maly',dest:'À laisser',note:'',photo:''},
+  {floor:'Cave',room:'Grande cave',item:'Petits meubles blancs',dest:'À laisser',note:'',photo:''},
+  {floor:'Cave',room:'Grande cave',item:'Table basse noire',dest:'À vendre/jeter',note:'',photo:''},
+  {floor:'Cave',room:'Grande cave',item:'Kicker',dest:'À vendre/jeter',note:'',photo:''},
+];
+
+// ═══════════════════════════════════════════════════════════
+// HELPERS
+// ═══════════════════════════════════════════════════════════
+function ikey(f,r,i){ return f+'|||'+r+'|||'+i; }
+
+function badge(d){
+  if(!d) return {cls:'b-autre',lbl:'?'};
+  const dl=d.toLowerCase();
+  if(dl.includes('laisser'))                     return {cls:'b-lais',lbl:'Laisser'};
+  if(dl.includes('vendre')||dl.includes('jeter'))return {cls:'b-vend',lbl:'Vendre/jeter'};
+  if(dl==='nivelles')                            return {cls:'b-niv', lbl:'Nivelles'};
+  if(dl.includes('nivelles'))                    return {cls:'b-niv2',lbl:'Niv. ?'};
+  if(dl==='lio')                                 return {cls:'b-lio', lbl:'Lio'};
+  if(dl==='mer')                                 return {cls:'b-mer', lbl:'Mer'};
+  if(dl.includes('rox')||dl.includes('lenny'))   return {cls:'b-rox', lbl:'Rox/Lenny'};
+  return {cls:'b-autre',lbl:d};
+}
+
+function floorIcon(f){
+  const d=f.toLowerCase();
+  if(d.includes('cave'))                         return '🍷';
+  if(d.includes('rez')||d.includes('rdc'))       return '🏠';
+  if(d.includes('1'))                            return '1️⃣';
+  if(d.includes('2'))                            return '2️⃣';
+  if(d.includes('3'))                            return '3️⃣';
+  if(d.includes('4'))                            return '4️⃣';
+  if(d.includes('5'))                            return '5️⃣';
+  return '🏢';
+}
+function floorShort(f){
+  const d=f.toLowerCase();
+  if(d.includes('rez')||d.includes('rdc'))       return 'R.D.C.';
+  if(d.includes('cave'))                         return 'Cave';
+  const m=f.match(/\d+/);
+  if(m)                                          return m[0]+'e';
+  return f.length>5 ? f.substring(0,4)+'…' : f;
+}
+function roomIcon(r){ return ROOM_ICONS[r]||'🏠'; }
+
+function matchQ(it){
+  const k=ikey(it.floor,it.room,it.item), done=!!checked[k], d=(it.dest||'').toLowerCase();
+  if(qFilter==='all')        return true;
+  if(qFilter==='done')       return done;
+  if(qFilter==='todo')       return !done;
+  if(qFilter==='Nivelles')   return d==='nivelles';
+  if(qFilter==='Nivelles ?') return d.includes('nivelles ?');
+  if(qFilter==='Lio')        return d==='lio';
+  if(qFilter==='Mer')        return d==='mer';
+  if(qFilter==='Laisser')    return d.includes('laisser');
+  if(qFilter==='Vendre')     return d.includes('vendre')||d.includes('jeter');
+  if(qFilter==='Rox')        return d.includes('rox')||d.includes('lenny');
+  return true;
+}
+
+// ═══════════════════════════════════════════════════════════
+// SYNC
+// ═══════════════════════════════════════════════════════════
+function initWS(){
+  const proto=location.protocol==='https:'?'wss':'ws';
+  try{
+    ws=new WebSocket(`${proto}://${location.host}`);
+    ws.onopen=()=>setSyncStatus('ok','En ligne');
+    ws.onclose=()=>{setSyncStatus('err','Hors ligne');setTimeout(initWS,4000);};
+    ws.onerror=()=>setSyncStatus('err','Erreur');
+    ws.onmessage=e=>{
+      const m=JSON.parse(e.data);
+      if(m.type==='update'||m.type==='hello') applyState(m.state);
+    };
+  }catch(e){setSyncStatus('err','Hors ligne');}
+}
+function applyState(s){
+  if(s.items&&s.items.length) items=s.items;
+  if(s.checked)               checked=s.checked;
+  if(s.structure)             structure=s.structure;
+  renderCurrent(); renderSidebar(); updateProgress();
+}
+async function pushState(){
+  setSyncStatus('syncing','Sync…');
+  try{
+    await fetch('/api/state',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({items,checked,structure})});
+    setSyncStatus('ok','Sauvé ✓');
+  }catch(e){ setSyncStatus('err','Erreur'); }
+}
+function setSyncStatus(s,l){
+  document.getElementById('syncDot').className='sync-dot '+s;
+  document.getElementById('syncLabel').textContent=l;
+}
+
+// ═══════════════════════════════════════════════════════════
+// SIDEBAR (dynamic)
+// ═══════════════════════════════════════════════════════════
+function renderSidebar(){
+  const container=document.getElementById('floorBtns');
+  if(!container) return;
+  let html='';
+  structure.order.forEach(f=>{
+    const todo=items.filter(it=>it.floor===f&&!checked[ikey(it.floor,it.room,it.item)]).length;
+    const active=currentFloor===f?'active':'';
+    const hasTodo=todo>0?'has-todo':'';
+    html+=`<button class="sb-btn ${active} ${hasTodo}" onclick='showPage(${JSON.stringify(f)})'>
+      <span class="fi">${floorIcon(f)}</span>
+      <span class="fl">${floorShort(f)}</span>
+      <span class="fc">${todo}</span>
+    </button>`;
+  });
+  container.innerHTML=html;
+  // stats button active state
+  const sbStats=document.getElementById('sb-stats');
+  if(sbStats) sbStats.classList.toggle('active', currentFloor===null);
+}
+
+function updateProgress(){
+  const total=items.length, done=items.filter(i=>checked[ikey(i.floor,i.room,i.item)]).length;
+  const pct=total?Math.round(done/total*100):0;
+  document.getElementById('progFill').style.width=pct+'%';
+  document.getElementById('progLeft').textContent=done+' / '+total+' objets traités';
+  document.getElementById('progRight').textContent=pct+'%';
+}
+
+// ═══════════════════════════════════════════════════════════
+// PAGE NAVIGATION
+// ═══════════════════════════════════════════════════════════
+function showPage(page){
+  const sp=document.getElementById('stats-page');
+  const fp=document.getElementById('floor-page');
+  const qf=document.getElementById('qfilters');
+  const fab=document.getElementById('fabBtn');
+
+  if(page==='__stats__'){
+    sp.style.display='flex'; sp.classList.add('show');
+    fp.style.display='none'; qf.style.display='none'; fab.style.display='none';
+    document.getElementById('topbarTitle').innerHTML='📊 <span>Statistiques</span>';
+    currentFloor=null;
+    renderStats();
+  } else {
+    sp.style.display='none'; sp.classList.remove('show');
+    fp.style.display='flex'; qf.style.display='flex'; fab.style.display='flex';
+    currentFloor=page;
+    document.getElementById('topbarTitle').innerHTML=`🏠 <span>${page}</span>`;
+    renderFloor(page);
+  }
+  renderSidebar();
+}
+
+function renderCurrent(){
+  if(currentFloor) renderFloor(currentFloor);
+  else renderStats();
+}
+
+// ═══════════════════════════════════════════════════════════
+// RENDER FLOOR
+// ═══════════════════════════════════════════════════════════
+function renderFloor(floor){
+  const container=document.getElementById('floorContent');
+  const roomMap={};
+  items.forEach((it,gi)=>{
+    if(it.floor!==floor) return;
+    if(!roomMap[it.room]) roomMap[it.room]=[];
+    roomMap[it.room].push({it,gi});
+  });
+
+  // Follow structure room order for this floor
+  const orderedRooms=(structure.rooms[floor]||[]).filter(r=>roomMap[r]);
+  // Also add rooms that have items but aren't in structure (edge case)
+  Object.keys(roomMap).forEach(r=>{ if(!orderedRooms.includes(r)) orderedRooms.push(r); });
+
+  const visible=orderedRooms.filter(r=>qFilter==='all'||roomMap[r].some(e=>matchQ(e.it)));
+
+  if(!visible.length){
+    container.innerHTML='<div class="empty-state"><div class="big">🎉</div>Aucun objet ici</div>';
+    return;
+  }
+
+  let html='';
+  visible.forEach(room=>{
+    const entries=roomMap[room]||[];
+    const rid=(floor+'_'+room).replace(/\W+/g,'_');
+    const doneC=entries.filter(e=>checked[ikey(e.it.floor,e.it.room,e.it.item)]).length;
+    const total=entries.length, pct=total?doneC/total:0;
+    const r=12,circ=2*Math.PI*r;
+    const dash=(circ*pct).toFixed(2), gap=(circ*(1-pct)).toFixed(2);
+    const isOpen=!!openRooms[rid];
+
+    html+=`<div class="room-card ${isOpen?'open':''}" id="rc-${rid}">
+      <div class="room-hdr" onclick="toggleRoom('${rid}')">
+        <span class="room-icon">${roomIcon(room)}</span>
+        <div class="room-info">
+          <div class="room-name">${room}</div>
+          <div class="room-sub">${doneC} / ${total} traités</div>
+        </div>
+        <div class="room-right">
+          <svg class="room-ring" viewBox="0 0 32 32">
+            <circle class="room-ring-bg" cx="16" cy="16" r="${r}"/>
+            <circle class="room-ring-fg" cx="16" cy="16" r="${r}" stroke-dasharray="${dash} ${gap}"/>
+            <text class="room-ring-txt" x="16" y="20" text-anchor="middle">${Math.round(pct*100)}%</text>
+          </svg>
+          <span class="chevron">▼</span>
+        </div>
+      </div>
+      <div class="room-body">`;
+
+    const toShow=qFilter==='all'?entries:entries.filter(e=>matchQ(e.it));
+    toShow.forEach(({it,gi})=>{
+      const k=ikey(it.floor,it.room,it.item), done=!!checked[k];
+      const {cls,lbl}=badge(it.dest);
+      const sk=k.replace(/'/g,"\\'");
+      html+=`<div class="item-row ${done?'done':''}">
+        <div class="item-tap" onclick="toggleCheck('${sk}')">
+          <div class="chk">${done?'✓':''}</div>
+          <div class="item-body">
+            <div class="item-name">${it.item}</div>
+            ${it.note?`<div class="item-note">👤 ${it.note}</div>`:''}
+          </div>
+          ${it.photo?`<img class="item-thumb" src="${it.photo}" alt="">`:''}
+          <span class="badge ${cls}">${lbl}</span>
+        </div>
+        <div class="item-actions">
+          <button class="act-btn" onclick="editItem(${gi},event)">✏️</button>
+          <button class="act-btn del" onclick="deleteItem(${gi},event)">✕</button>
+        </div>
+      </div>`;
+    });
+
+    const fe=JSON.stringify(floor), re=JSON.stringify(room);
+    html+=`<div class="qadd-row">
+      <input class="qadd-input" placeholder="+ Ajouter dans ${room}…" id="qi-${rid}"
+        onkeydown="if(event.key==='Enter')quickAdd(${fe},${re},'${rid}')">
+      <select class="qadd-dest" id="qd-${rid}">
+        <option value="Nivelles">🏠 Niv.</option>
+        <option value="Nivelles ?">🏠 Niv.?</option>
+        <option value="Lio">🌊 Lio</option>
+        <option value="Mer">⚓ Mer</option>
+        <option value="À laisser">📌 Laisser</option>
+        <option value="À vendre/jeter">♻️ Vendre</option>
+        <option value="Rox/Lenny">🎮 Rox</option>
+      </select>
+      <button class="qadd-btn" onclick="quickAdd(${fe},${re},'${rid}')">+</button>
+    </div></div></div>`;
+  });
+  container.innerHTML=html;
+}
+
+// ═══════════════════════════════════════════════════════════
+// RENDER STATS
+// ═══════════════════════════════════════════════════════════
+function renderStats(){
+  const total=items.length;
+  const done=items.filter(i=>checked[ikey(i.floor,i.room,i.item)]).length;
+  const todo=total-done, pct=total?Math.round(done/total*100):0;
+
+  const destCount={};
+  items.forEach(i=>{const d=badge(i.dest).lbl;destCount[d]=(destCount[d]||0)+1;});
+
+  const flStats=structure.order.map(f=>{
+    const fl=items.filter(i=>i.floor===f);
+    const fd=fl.filter(i=>checked[ikey(i.floor,i.room,i.item)]).length;
+    return {f,total:fl.length,done:fd};
+  });
+
+  document.getElementById('statsContent').innerHTML=`
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+      <div class="stat-title">📊 Vue d'<span>ensemble</span></div>
+      <button onclick="openExport()" style="background:var(--accent);color:#fff;border:none;border-radius:10px;padding:8px 14px;font-family:'Outfit',sans-serif;font-size:12px;font-weight:700;cursor:pointer">📤 Exporter</button>
+    </div>
+    <div class="kpi-grid">
+      <div class="kpi-card"><div class="kpi-val" style="color:var(--accent)">${total}</div><div class="kpi-lbl">Total</div></div>
+      <div class="kpi-card"><div class="kpi-val" style="color:var(--laisser)">${done}</div><div class="kpi-lbl">Traités</div></div>
+      <div class="kpi-card"><div class="kpi-val" style="color:var(--vendre)">${todo}</div><div class="kpi-lbl">Restants</div></div>
+      <div class="kpi-card"><div class="kpi-val" style="color:var(--lio)">${pct}%</div><div class="kpi-lbl">Avancement</div></div>
+    </div>
+    <div class="chart-card"><h3>Répartition par destination</h3><canvas id="cDest" height="220"></canvas></div>
+    <div class="chart-card"><h3>Avancement par étage</h3><canvas id="cFloor" height="200"></canvas></div>
+    <div class="chart-card"><h3>Progression détaillée</h3>${flStats.map(s=>`
+      <div class="floor-stat">
+        <div class="floor-stat-row"><span class="floor-stat-name">${s.f}</span><span class="floor-stat-nums">${s.done}/${s.total}</span></div>
+        <div class="floor-stat-bar"><div class="floor-stat-fill" style="width:${s.total?Math.round(s.done/s.total*100):0}%"></div></div>
+      </div>`).join('')}
+    </div>`;
+
+  Object.values(charts).forEach(c=>{try{c.destroy();}catch(e){}});
+  charts={};
+
+  const dL=Object.keys(destCount);
+  const dC=dL.map(l=>{
+    if(l==='Nivelles')return'#c4773a'; if(l==='Niv. ?')return'#8a6a3a';
+    if(l==='Lio')return'#3a7fc4';     if(l==='Mer')return'#2a9d8f';
+    if(l==='Laisser')return'#3aab6e'; if(l.includes('Vendre'))return'#c43a3a';
+    if(l.includes('Rox'))return'#7a3ac4'; return'#aaa';
+  });
+  charts.dest=new Chart(document.getElementById('cDest'),{
+    type:'doughnut',
+    data:{labels:dL,datasets:[{data:dL.map(l=>destCount[l]),backgroundColor:dC,borderWidth:2,borderColor:'#fff'}]},
+    options:{plugins:{legend:{position:'bottom',labels:{font:{family:'Outfit',size:11},padding:10}}},cutout:'62%'}
+  });
+  charts.floor=new Chart(document.getElementById('cFloor'),{
+    type:'bar',
+    data:{labels:flStats.map(s=>floorShort(s.f)),datasets:[
+      {label:'Traités',data:flStats.map(s=>s.done),backgroundColor:'#3aab6e',borderRadius:5},
+      {label:'Restants',data:flStats.map(s=>s.total-s.done),backgroundColor:'#e2ddd4',borderRadius:5}
+    ]},
+    options:{plugins:{legend:{labels:{font:{family:'Outfit',size:11}}}},scales:{x:{stacked:true,grid:{display:false}},y:{stacked:true,grid:{color:'#f0ede8'}}}}
+  });
+}
+
+// ═══════════════════════════════════════════════════════════
+// ITEM ACTIONS
+// ═══════════════════════════════════════════════════════════
+function toggleCheck(k){
+  checked[k]=!checked[k]; if(!checked[k]) delete checked[k];
+  pushState(); renderCurrent(); renderSidebar(); updateProgress();
+}
+function toggleRoom(rid){
+  openRooms[rid]=!openRooms[rid];
+  const c=document.getElementById('rc-'+rid);
+  if(c) c.classList.toggle('open',!!openRooms[rid]);
+}
+function deleteItem(idx,e){
+  e.stopPropagation();
+  if(!confirm('Supprimer cet objet ?')) return;
+  items.splice(idx,1);
+  pushState(); renderCurrent(); renderSidebar(); updateProgress();
+}
+function quickAdd(floor,room,rid){
+  const inp=document.getElementById('qi-'+rid);
+  const dest=document.getElementById('qd-'+rid);
+  const name=inp?inp.value.trim():'';
+  if(!name) return;
+  items.push({floor,room,item:name,dest:dest?dest.value:'Nivelles',note:'',photo:''});
+  openRooms[rid]=true;
+  pushState(); renderFloor(floor); renderSidebar(); updateProgress();
+  showToast('✓ Ajouté dans '+room);
+}
+function setQF(f,btn){
+  qFilter=f;
+  document.querySelectorAll('.qchip').forEach(c=>c.classList.remove('active'));
+  btn.classList.add('active');
+  if(currentFloor) renderFloor(currentFloor);
+}
+
+// ═══════════════════════════════════════════════════════════
+// ITEM MODAL (add / edit)
+// ═══════════════════════════════════════════════════════════
+function rebuildFloorSelect(){
+  const sel=document.getElementById('mFloor');
+  sel.innerHTML='<option value="">— choisir —</option>'+
+    structure.order.map(f=>`<option value="${f}">${f}</option>`).join('');
+}
+function updateRoomOptions(){
+  const floor=document.getElementById('mFloor').value;
+  const sel=document.getElementById('mRoom');
+  if(!floor){ sel.innerHTML="<option value=''>— d'abord l'étage —</option>"; return; }
+  const rooms=structure.rooms[floor]||[];
+  sel.innerHTML=rooms.map(r=>`<option value="${r}">${r}</option>`).join('');
+}
+
+function openAddModal(){
+  document.getElementById('itemModalTitle').textContent='Ajouter un objet';
+  document.getElementById('submitBtn').textContent='Ajouter ✓';
+  document.getElementById('editIdx').value='-1';
+  document.getElementById('mItem').value='';
+  document.getElementById('mNote').value='';
+  document.getElementById('mDest').value='Nivelles';
+  rebuildFloorSelect();
+  if(currentFloor){
+    document.getElementById('mFloor').value=currentFloor;
+    updateRoomOptions();
+  } else {
+    updateRoomOptions();
+  }
+  pendingPhoto='';
+  document.getElementById('photoArea').classList.remove('has-img');
+  document.getElementById('photoPreview').src='';
+  document.getElementById('photoInput').value='';
+  document.getElementById('itemOverlay').classList.add('show');
+  setTimeout(()=>document.getElementById('mItem').focus(),300);
+}
+function editItem(idx,e){
+  e.stopPropagation();
+  const it=items[idx];
+  document.getElementById('itemModalTitle').textContent="Modifier l'objet";
+  document.getElementById('submitBtn').textContent='Enregistrer ✓';
+  document.getElementById('editIdx').value=idx;
+  document.getElementById('mItem').value=it.item;
+  document.getElementById('mNote').value=it.note||'';
+  document.getElementById('mDest').value=it.dest||'Nivelles';
+  rebuildFloorSelect();
+  document.getElementById('mFloor').value=it.floor;
+  updateRoomOptions();
+  document.getElementById('mRoom').value=it.room;
+  pendingPhoto=it.photo||'';
+  if(pendingPhoto){
+    document.getElementById('photoPreview').src=pendingPhoto;
+    document.getElementById('photoArea').classList.add('has-img');
+  } else {
+    document.getElementById('photoPreview').src='';
+    document.getElementById('photoArea').classList.remove('has-img');
+  }
+  document.getElementById('itemOverlay').classList.add('show');
+}
+function closeItemModal(){ document.getElementById('itemOverlay').classList.remove('show'); }
+function submitItemModal(){
+  const name=document.getElementById('mItem').value.trim();
+  if(!name){ showToast('⚠️ Entrez un nom'); return; }
+  const floor=document.getElementById('mFloor').value;
+  const room=document.getElementById('mRoom').value;
+  if(!floor||!room){ showToast('⚠️ Choisissez étage et pièce'); return; }
+  const dest=document.getElementById('mDest').value;
+  const note=document.getElementById('mNote').value.trim();
+  const idx=parseInt(document.getElementById('editIdx').value);
+  if(idx>=0){
+    items[idx]={...items[idx],item:name,floor,room,dest,note,photo:pendingPhoto};
+    showToast('✏️ Modifié !');
+  } else {
+    items.push({floor,room,item:name,dest,note,photo:pendingPhoto});
+    const rid=(floor+'_'+room).replace(/\W+/g,'_');
+    openRooms[rid]=true;
+    showToast('✓ '+name+' ajouté !');
+  }
+  pushState(); renderCurrent(); renderSidebar(); updateProgress(); closeItemModal();
+}
+
+// PHOTO
+function handlePhoto(e){
+  const file=e.target.files[0]; if(!file) return;
+  const reader=new FileReader();
+  reader.onload=ev=>{
+    const img=new Image();
+    img.onload=()=>{
+      const canvas=document.createElement('canvas');
+      const MAX=600; let w=img.width,h=img.height;
+      if(w>MAX){h=Math.round(h*MAX/w);w=MAX;}
+      canvas.width=w; canvas.height=h;
+      canvas.getContext('2d').drawImage(img,0,0,w,h);
+      pendingPhoto=canvas.toDataURL('image/jpeg',.7);
+      document.getElementById('photoPreview').src=pendingPhoto;
+      document.getElementById('photoArea').classList.add('has-img');
+    };
+    img.src=ev.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+function removePhoto(e){
+  e.stopPropagation();
+  pendingPhoto='';
+  document.getElementById('photoPreview').src='';
+  document.getElementById('photoArea').classList.remove('has-img');
+  document.getElementById('photoInput').value='';
+}
+
+// ═══════════════════════════════════════════════════════════
+// MANAGE STRUCTURE MODAL
+// ═══════════════════════════════════════════════════════════
+function openManage(){
+  managingFloor=null;
+  showFloorsView();
+  document.getElementById('manageOverlay').classList.add('show');
+}
+function closeManage(){ document.getElementById('manageOverlay').classList.remove('show'); }
+
+function showFloorsView(){
+  document.getElementById('manageFloorsView').style.display='block';
+  document.getElementById('manageRoomsView').style.display='none';
+  document.getElementById('addFloorInline').classList.remove('show');
+  renderFloorManageList();
+}
+function showRoomsView(floor){
+  managingFloor=floor;
+  document.getElementById('manageFloorsView').style.display='none';
+  document.getElementById('manageRoomsView').style.display='block';
+  document.getElementById('roomsFloorBadge').textContent=floor;
+  document.getElementById('addRoomInline').classList.remove('show');
+  renderRoomManageList();
+}
+function toggleInlineAdd(id){
+  const el=document.getElementById(id);
+  el.classList.toggle('show');
+  if(el.classList.contains('show')){
+    const inp=el.querySelector('input');
+    inp.value='';
+    setTimeout(()=>inp.focus(),100);
+  }
+}
+
+// ── Render lists ─────────────────────────────────────────────
+function renderFloorManageList(){
+  const list=document.getElementById('floorManageList');
+  if(!list) return;
+  list.innerHTML='';
+  structure.order.forEach((f,i)=>{
+    const rc=(structure.rooms[f]||[]).length;
+    const ic=items.filter(it=>it.floor===f).length;
+    const div=document.createElement('div');
+    div.className='mrow';
+    div.id='mfl-'+i;
+    div.innerHTML=
+      '<span class="drag-handle">≡</span>'+
+      '<div class="mrow-info">'+
+        '<div class="mrow-name">'+floorIcon(f)+' '+f+'</div>'+
+        '<div class="mrow-sub">'+rc+' pièce'+(rc!==1?'s':'')+' · '+ic+' objet'+(ic!==1?'s':'')+'</div>'+
+      '</div>'+
+      '<div class="mrow-actions">'+
+        '<button class="mrow-btn" data-action="rename-floor" data-idx="'+i+'" data-val="'+f.replace(/"/g,'&quot;')+'">✏️</button>'+
+        '<button class="mrow-btn rooms" data-action="rooms" data-val="'+f.replace(/"/g,'&quot;')+'">🚪</button>'+
+        '<button class="mrow-btn del" data-action="del-floor" data-val="'+f.replace(/"/g,'&quot;')+'">✕</button>'+
+      '</div>';
+    // Drag events on handle only
+    const handle=div.querySelector('.drag-handle');
+    handle.addEventListener('mousedown', ()=>{ div.draggable=true; });
+    handle.addEventListener('touchstart', ()=>{ div.draggable=true; }, {passive:true});
+    div.addEventListener('dragend', ()=>{ div.draggable=false; div.classList.remove('dragging'); });
+    div.addEventListener('dragstart', e=>{ dragSrcIdx=i; dragType='floor'; e.dataTransfer.effectAllowed='move'; setTimeout(()=>div.classList.add('dragging'),0); });
+    div.addEventListener('dragover', e=>{ e.preventDefault(); div.classList.add('drag-over'); });
+    div.addEventListener('dragleave', ()=>div.classList.remove('drag-over'));
+    div.addEventListener('drop', e=>{ e.preventDefault(); div.classList.remove('drag-over'); doFloorDrop(i); });
+    // Button events
+    div.querySelector('[data-action="rename-floor"]').addEventListener('click', e=>{ e.stopPropagation(); openRename('floor-'+i, f); });
+    div.querySelector('[data-action="rooms"]').addEventListener('click', e=>{ e.stopPropagation(); showRoomsView(f); });
+    div.querySelector('[data-action="del-floor"]').addEventListener('click', e=>{ e.stopPropagation(); deleteFloor(f); });
+    list.appendChild(div);
+  });
+}
+
+function renderRoomManageList(){
+  const list=document.getElementById('roomManageList');
+  if(!list||!managingFloor) return;
+  list.innerHTML='';
+  const rooms=structure.rooms[managingFloor]||[];
+  rooms.forEach((r,i)=>{
+    const ic=items.filter(it=>it.floor===managingFloor&&it.room===r).length;
+    const div=document.createElement('div');
+    div.className='mrow';
+    div.id='mrm-'+i;
+    div.innerHTML=
+      '<span class="drag-handle">≡</span>'+
+      '<div class="mrow-info">'+
+        '<div class="mrow-name">'+roomIcon(r)+' '+r+'</div>'+
+        '<div class="mrow-sub">'+ic+' objet'+(ic!==1?'s':'')+'</div>'+
+      '</div>'+
+      '<div class="mrow-actions">'+
+        '<button class="mrow-btn" data-action="rename-room" data-val="'+r.replace(/"/g,'&quot;')+'">✏️</button>'+
+        '<button class="mrow-btn del" data-action="del-room" data-val="'+r.replace(/"/g,'&quot;')+'">✕</button>'+
+      '</div>';
+    const handle=div.querySelector('.drag-handle');
+    handle.addEventListener('mousedown', ()=>{ div.draggable=true; });
+    handle.addEventListener('touchstart', ()=>{ div.draggable=true; }, {passive:true});
+    div.addEventListener('dragend', ()=>{ div.draggable=false; div.classList.remove('dragging'); });
+    div.addEventListener('dragstart', e=>{ dragSrcIdx=i; dragType='room'; e.dataTransfer.effectAllowed='move'; setTimeout(()=>div.classList.add('dragging'),0); });
+    div.addEventListener('dragover', e=>{ e.preventDefault(); div.classList.add('drag-over'); });
+    div.addEventListener('dragleave', ()=>div.classList.remove('drag-over'));
+    div.addEventListener('drop', e=>{ e.preventDefault(); div.classList.remove('drag-over'); doRoomDrop(i); });
+    div.querySelector('[data-action="rename-room"]').addEventListener('click', e=>{ e.stopPropagation(); openRename('room', r); });
+    div.querySelector('[data-action="del-room"]').addEventListener('click', e=>{ e.stopPropagation(); deleteRoom(r); });
+    list.appendChild(div);
+  });
+}
+
+// ── Drag ─────────────────────────────────────────────────────
+let dragType=null;
+function doFloorDrop(toIdx){
+  if(dragSrcIdx===null||dragSrcIdx===toIdx){ dragSrcIdx=null; return; }
+  const moved=structure.order.splice(dragSrcIdx,1)[0];
+  structure.order.splice(toIdx,0,moved);
+  dragSrcIdx=null;
+  pushState(); renderFloorManageList(); renderSidebar();
+}
+function doRoomDrop(toIdx){
+  if(!managingFloor||dragSrcIdx===null||dragSrcIdx===toIdx){ dragSrcIdx=null; return; }
+  const rooms=structure.rooms[managingFloor];
+  const moved=rooms.splice(dragSrcIdx,1)[0];
+  rooms.splice(toIdx,0,moved);
+  dragSrcIdx=null;
+  pushState(); renderRoomManageList(); renderCurrent();
+}
+
+// ── Rename modal ──────────────────────────────────────────────
+let _renameCtx=null;
+function openRename(type,old){
+  _renameCtx={type,old};
+  document.getElementById('renameTitle').textContent=type.startsWith('floor')?'Renommer l\'étage':'Renommer la pièce';
+  const inp=document.getElementById('renameInput');
+  inp.value=old;
+  document.getElementById('renameOverlay').classList.add('show');
+  setTimeout(()=>{ inp.focus(); inp.select(); },200);
+}
+function closeRename(){
+  document.getElementById('renameOverlay').classList.remove('show');
+  _renameCtx=null;
+}
+function confirmRename(){
+  if(!_renameCtx) return;
+  const n=document.getElementById('renameInput').value.trim();
+  if(!n){ showToast('⚠️ Entrez un nom'); return; }
+  const {type,old}=_renameCtx;
+  if(n===old){ closeRename(); return; }
+  if(type.startsWith('floor')){
+    const idx=parseInt(type.split('-')[1]);
+    if(structure.order.includes(n)){ showToast('⚠️ Ce nom existe déjà'); return; }
+    structure.order[idx]=n;
+    structure.rooms[n]=structure.rooms[old]||[];
+    delete structure.rooms[old];
+    items.forEach(it=>{ if(it.floor===old) it.floor=n; });
+    if(currentFloor===old){ currentFloor=n; document.getElementById('topbarTitle').innerHTML='🏠 <span>'+n+'</span>'; }
+    pushState(); renderFloorManageList(); renderSidebar(); renderCurrent();
+  } else {
+    if(!managingFloor) return;
+    const rooms=structure.rooms[managingFloor]||[];
+    if(rooms.includes(n)){ showToast('⚠️ Ce nom existe déjà'); return; }
+    const idx=rooms.indexOf(old);
+    if(idx>=0) rooms[idx]=n;
+    items.forEach(it=>{ if(it.floor===managingFloor&&it.room===old) it.room=n; });
+    pushState(); renderRoomManageList(); renderCurrent(); renderSidebar();
+  }
+  showToast('✓ Renommé !'); closeRename();
+}
+
+// ── Add ──────────────────────────────────────────────────────
+function confirmAddFloor(){
+  const n=document.getElementById('newFloorInput').value.trim();
+  if(!n){ showToast('⚠️ Entrez un nom'); return; }
+  if(structure.order.includes(n)){ showToast('⚠️ Existe déjà'); return; }
+  structure.order.push(n);
+  structure.rooms[n]=[];
+  document.getElementById('newFloorInput').value='';
+  document.getElementById('addFloorInline').classList.remove('show');
+  pushState(); renderFloorManageList(); renderSidebar();
+  showToast('✓ Étage ajouté !');
+}
+function confirmAddRoom(){
+  if(!managingFloor) return;
+  const n=document.getElementById('newRoomInput').value.trim();
+  if(!n){ showToast('⚠️ Entrez un nom'); return; }
+  if(!structure.rooms[managingFloor]) structure.rooms[managingFloor]=[];
+  if(structure.rooms[managingFloor].includes(n)){ showToast('⚠️ Existe déjà'); return; }
+  structure.rooms[managingFloor].push(n);
+  document.getElementById('newRoomInput').value='';
+  document.getElementById('addRoomInline').classList.remove('show');
+  pushState(); renderRoomManageList();
+  showToast('✓ Pièce ajoutée !');
+}
+
+// ── Delete ────────────────────────────────────────────────────
+function deleteFloor(f){
+  const ic=items.filter(it=>it.floor===f).length;
+  if(!confirm('Supprimer "'+f+'"'+(ic>0?' et ses '+ic+' objets':'')+' ?')) return;
+  structure.order=structure.order.filter(x=>x!==f);
+  delete structure.rooms[f];
+  items=items.filter(it=>it.floor!==f);
+  if(currentFloor===f) showPage('__stats__');
+  pushState(); renderFloorManageList(); renderSidebar(); updateProgress();
+  showToast('Étage supprimé');
+}
+function deleteRoom(r){
+  if(!managingFloor) return;
+  const ic=items.filter(it=>it.floor===managingFloor&&it.room===r).length;
+  if(!confirm('Supprimer "'+r+'"'+(ic>0?' et ses '+ic+' objets':'')+' ?')) return;
+  structure.rooms[managingFloor]=(structure.rooms[managingFloor]||[]).filter(x=>x!==r);
+  items=items.filter(it=>!(it.floor===managingFloor&&it.room===r));
+  pushState(); renderRoomManageList(); renderCurrent(); renderSidebar(); updateProgress();
+  showToast('Pièce supprimée');
+}
+
+// ═══════════════════════════════════════════════════════════
+// EXPORT
+// ═══════════════════════════════════════════════════════════
+function openExport(){
+  // Rebuild floor chips dynamically
+  const row=document.getElementById('expFloorRow');
+  let h=`<button class="exp-chip active" onclick="setExpFloor('all',this)">Tous</button>`;
+  structure.order.forEach(f=>{
+    h+=`<button class="exp-chip" onclick='setExpFloor(${JSON.stringify(f)},this)'>${floorShort(f)}</button>`;
+  });
+  row.innerHTML=h;
+  expFilter='all'; expFloor='all'; expDone='all';
+  // Reset active states
+  document.querySelectorAll('#expDestRow .exp-chip').forEach((c,i)=>c.classList.toggle('active',i===0));
+  document.getElementById('exportOverlay').classList.add('show');
+}
+function closeExport(){ document.getElementById('exportOverlay').classList.remove('show'); }
+function setExpFilter(f,btn){
+  expFilter=f;
+  document.querySelectorAll('#expDestRow .exp-chip').forEach(c=>c.classList.remove('active'));
+  btn.classList.add('active');
+}
+function setExpFloor(f,btn){
+  expFloor=f;
+  document.querySelectorAll('#expFloorRow .exp-chip').forEach(c=>c.classList.remove('active'));
+  btn.classList.add('active');
+}
+function setExpDone(f,btn){
+  expDone=f;
+  btn.parentElement.querySelectorAll('.exp-chip').forEach(c=>c.classList.remove('active'));
+  btn.classList.add('active');
+}
+function getExportItems(){
+  return items.filter(it=>{
+    const k=ikey(it.floor,it.room,it.item), done=!!checked[k], d=(it.dest||'').toLowerCase();
+    if(expFloor!=='all'&&it.floor!==expFloor) return false;
+    if(expDone==='todo'&&done)                return false;
+    if(expDone==='done'&&!done)               return false;
+    if(expFilter==='all')                     return true;
+    if(expFilter==='Nivelles')   return d==='nivelles';
+    if(expFilter==='Nivelles ?') return d.includes('nivelles ?');
+    if(expFilter==='Lio')        return d==='lio';
+    if(expFilter==='Mer')        return d==='mer';
+    if(expFilter==='Laisser')    return d.includes('laisser');
+    if(expFilter==='Vendre')     return d.includes('vendre')||d.includes('jeter');
+    if(expFilter==='Rox')        return d.includes('rox')||d.includes('lenny');
+    return true;
+  });
+}
+function exportPDF(){
+  const its=getExportItems();
+  if(!its.length){ showToast('⚠️ Aucun objet'); return; }
+  const groups={};
+  its.forEach(it=>{ const k=it.floor+' — '+it.room; if(!groups[k]) groups[k]=[]; groups[k].push(it); });
+  const done=its.filter(i=>checked[ikey(i.floor,i.room,i.item)]).length;
+  const now=new Date().toLocaleDateString('fr-BE',{day:'2-digit',month:'2-digit',year:'numeric'});
+  let html=`<!DOCTYPE html><html><head><meta charset="UTF-8"><style>
+    body{font-family:Arial,sans-serif;font-size:12px;color:#222;margin:30px}
+    h1{font-size:20px;color:#c4773a;margin-bottom:4px} .meta{font-size:11px;color:#888;margin-bottom:20px}
+    h2{font-size:13px;font-weight:bold;color:#c4773a;margin:18px 0 6px;border-bottom:1px solid #e2ddd4;padding-bottom:4px}
+    table{width:100%;border-collapse:collapse;margin-bottom:10px}
+    th{background:#f5f2ec;text-align:left;padding:6px 8px;font-size:10px;text-transform:uppercase;color:#8a8278}
+    td{padding:6px 8px;border-bottom:1px solid #f0ede8;vertical-align:top}
+    .done{color:#aaa;text-decoration:line-through}
+    .badge{display:inline-block;font-size:9px;font-weight:bold;padding:2px 6px;border-radius:8px;text-transform:uppercase}
+    .b-niv{background:#f5e6d8;color:#c4773a} .b-niv2{background:#f5eed8;color:#8a6a3a}
+    .b-lio{background:#d8eaf5;color:#3a7fc4} .b-mer{background:#d8f5f2;color:#2a9d8f}
+    .b-lais{background:#d8f5e6;color:#3aab6e} .b-vend{background:#f5d8d8;color:#c43a3a}
+    .b-rox{background:#ead8f5;color:#7a3ac4} .b-autre{background:#f0ede8;color:#888}
+    @media print{body{margin:15px}}
+  </style></head><body>
+  <h1>📦 Liste Déménagement</h1>
+  <div class="meta">Généré le ${now} · ${its.length} objets · ${done} traités</div>`;
+  Object.entries(groups).forEach(([grp,gitems])=>{
+    html+=`<h2>${grp}</h2><table><tr><th></th><th>Objet</th><th>Destination</th><th>Note</th></tr>`;
+    gitems.forEach(it=>{
+      const k=ikey(it.floor,it.room,it.item),isDone=!!checked[k];
+      const {cls,lbl}=badge(it.dest);
+      html+=`<tr><td>${isDone?'☑':'☐'}</td><td class="${isDone?'done':''}">${it.item}</td>
+        <td><span class="badge ${cls}">${lbl}</span></td><td style="color:#888">${it.note||''}</td></tr>`;
+    });
+    html+='</table>';
+  });
+  html+='</body></html>';
+  const w=window.open('','_blank');
+  w.document.write(html); w.document.close();
+  setTimeout(()=>w.print(),500);
+  closeExport();
+}
+function exportCSV(){
+  const its=getExportItems();
+  if(!its.length){ showToast('⚠️ Aucun objet'); return; }
+  let csv='\uFEFF'+'Etage;Piece;Objet;Destination;Note;Traite\n';
+  its.forEach(it=>{
+    const k=ikey(it.floor,it.room,it.item);
+    const esc=s=>'"'+String(s||'').replace(/"/g,'""')+'"';
+    csv+=`${esc(it.floor)};${esc(it.room)};${esc(it.item)};${esc(it.dest)};${esc(it.note)};${esc(checked[k]?'Oui':'Non')}\n`;
+  });
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8;'}));
+  a.download='demenagement.csv'; a.click();
+  closeExport(); showToast('✓ CSV téléchargé !');
+}
+function exportTXT(){
+  const its=getExportItems();
+  if(!its.length){ showToast('⚠️ Aucun objet'); return; }
+  const groups={};
+  its.forEach(it=>{ const k=it.floor+' — '+it.room; if(!groups[k]) groups[k]=[]; groups[k].push(it); });
+  const now=new Date().toLocaleDateString('fr-BE');
+  let txt=`LISTE DEMENAGEMENT — ${now}\n${'='.repeat(40)}\n`;
+  Object.entries(groups).forEach(([grp,gitems])=>{
+    txt+=`\n${grp.toUpperCase()}\n${'-'.repeat(grp.length)}\n`;
+    gitems.forEach(it=>{
+      const k=ikey(it.floor,it.room,it.item);
+      txt+=`${checked[k]?'[x]':'[ ]'} ${it.item} → ${it.dest}${it.note?' ('+it.note+')':''}\n`;
+    });
+  });
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([txt],{type:'text/plain;charset=utf-8;'}));
+  a.download='demenagement.txt'; a.click();
+  closeExport(); showToast('✓ Texte téléchargé !');
+}
+
+// ═══════════════════════════════════════════════════════════
+// TOAST
+// ═══════════════════════════════════════════════════════════
+function showToast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),2200);
+}
+
+// ═══════════════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════════════
+async function init(){
+  // Load default items
+  items=JSON.parse(JSON.stringify(DEFAULT_ITEMS));
+  try{
+    const res=await fetch('/api/state');
+    const s=await res.json();
+    if(s.items&&s.items.length) items=s.items;
+    if(s.checked)    checked=s.checked;
+    if(s.structure)  structure=s.structure;
+  }catch(e){}
+  updateProgress(); renderSidebar(); showPage('__stats__'); initWS();
+}
+
+window.addEventListener('load',()=>{
+  init();
+  setTimeout(()=>{
+    document.getElementById('splash').classList.add('hide');
+    setTimeout(()=>{
+      document.getElementById('splash').style.display='none';
+      document.getElementById('app').classList.add('show');
+    },650);
+  },3000);
+});
+</script>
+</body>
+</html>
